@@ -1,0 +1,85 @@
+local garage = {}
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CollectionService = game:GetService("CollectionService")
+
+local wheelDiffs = {}
+
+for _, model in pairs(ReplicatedStorage.GarageOptions.Full:GetChildren()) do
+	wheelDiffs[model.Name] = {}
+	for _, wheel in pairs(model.Wheels:GetChildren()) do
+		wheelDiffs[model.Name][wheel.Name] = wheel.CFrame
+	end
+end
+
+-- setup vehicles
+garage.init = function()
+	for _, vehicle in pairs(ReplicatedStorage.GarageOptions.Full:GetChildren()) do
+		vehicle = vehicle:Clone()
+		vehicle:PivotTo(CFrame.new(Vector3.zero) * vehicle:GetPivot().Rotation)
+		
+		local model = Instance.new("Model")
+		model.Name = vehicle.Name
+		
+		for _, tire in pairs(vehicle.Wheels:GetChildren()) do
+			tire.Parent = model
+		end
+		
+		model.Parent = ReplicatedStorage.GarageOptions.Rims
+		vehicle.Parent = ReplicatedStorage.GarageOptions.Bodies
+		
+		vehicle["A-Chassis Tune"].Initialize.Enabled = false
+	end
+end
+
+-- car: string, rim: string, plate: bool, color: string/color3
+garage.create = function(car, rim, plate, color, tint, headlight, position)
+	local clone = ReplicatedStorage.GarageOptions.Bodies[car]:Clone()
+	local rim = ReplicatedStorage.GarageOptions.Rims[rim]
+		
+	-- all the cars are structured differently
+	-- paint meshes are either named as such or sometimes use collection service tags
+	-- hence the many checks :(
+	for _, descendant in pairs(clone:GetDescendants()) do
+		-- plate
+		if descendant.Name == "SGUI" then
+			descendant.Enabled = plate
+		end
+		
+		if descendant:IsA("BasePart") then
+			if descendant.Transparency > 0 then
+				descendant.Transparency = tint
+			end
+			
+			if string.find(descendant.Name:lower(), "paint") or CollectionService:HasTag(descendant, "VehiclePaint") then
+				descendant.BrickColor = BrickColor.new(color)
+			end
+		end
+		
+		if descendant:IsA("SpotLight") then
+			if descendant.Parent.Parent.Name == "Headlights" then
+				-- light accepts color3
+				descendant.Color = BrickColor.new(headlight).Color
+				descendant.Parent.Parent.BrickColor = BrickColor.new(headlight)
+				
+				descendant.Parent.Parent.Material = "Neon"
+				descendant.Enabled = true
+			end
+		end
+	end
+	
+	-- reset wheel positions
+	for typeWheel, wheelCFrame in pairs(wheelDiffs[clone.Name]) do
+		local rimClone = rim[typeWheel]:Clone()
+		
+		rimClone:PivotTo(wheelCFrame)
+		
+		rimClone.Parent = clone.Wheels
+	end
+	
+	clone:PivotTo(CFrame.new(position) * clone:GetPivot().Rotation)
+
+	return clone
+end
+
+return garage
