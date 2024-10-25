@@ -1,0 +1,72 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local bodies = {}
+-- lol
+local colors = {"White", "Really black", "Dark green", "Bright blue", "Bright red", "Bright yellow", "Light yellow", "Dark grey", "Bright violet", "Gold", "Brown", "Royal purple"}
+local rims = {}
+local tint = {"0", "0.1" ,"0.2", "0.4", "0.6", "0.8", "0.9", "1"}
+local plate = {"Plate", "No Plate"}
+local headlight = {"Default", "White", "Dark green", "Bright blue", "Bright red", "Bright yellow", "Light yellow", "Dark grey", "Bright violet", "Gold", "Brown", "Royal purple"}
+
+for _, vehicle in pairs(ReplicatedStorage.GarageOptions.Full:GetChildren()) do
+	table.insert(bodies, vehicle.Name)
+	table.insert(rims, vehicle.Name)
+end
+
+local lookup = {
+	["Body"] = bodies,
+	["Color"] = colors,
+	["Rims"] = rims,
+	["Tint"] = tint,
+	["Plate"] = plate,
+	["Headlight"] = headlight
+}
+
+local ui = script.Parent.SpawnMenu
+
+ui.Body.Current.Text = bodies[1]
+ui.Color.Current.Text = colors[1]
+ui.Rims.Current.Text = rims[1]
+ui.Tint.Current.Text = tint[1]
+ui.Plate.Current.Text = plate[1]
+ui.Headlight.Current.Text = headlight[1]
+
+local function postCustomization()
+	ReplicatedStorage.Customize:FireServer(ui.Body.Current.Text, ui.Rims.Current.Text, ui.Plate.Current.Text, ui.Color.Current.Text, ui.Tint.Current.Text, ui.Headlight.Current.Text)
+end
+
+local function setupNext(button)
+	local key = table.find(lookup[button.Parent.Name], button.Parent.Current.Text)
+	
+	key = key + 1
+
+	if key > #lookup[button.Parent.Name] then
+		key = 1
+	end
+
+	button.Parent.Current.Text = lookup[button.Parent.Name][key]
+	postCustomization()
+end
+
+local function setupPrevious(button)
+	local key = table.find(lookup[button.Parent.Name], button.Parent.Current.Text)
+
+	key = key - 1
+
+	if key < 1 then
+		key = #lookup[button.Parent.Name]
+	end
+
+	button.Parent.Current.Text = lookup[button.Parent.Name][key]
+	postCustomization()
+end
+
+for _, v in pairs(script.Parent.SpawnMenu:GetDescendants()) do
+	if v.Name == "Next" then
+		v.Activated:Connect(function() setupNext(v) end)
+	elseif v.Name == "Previous" then
+		v.Activated:Connect(function() setupPrevious(v) end)
+	end
+end
+
+postCustomization()
